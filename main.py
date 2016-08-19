@@ -1,23 +1,35 @@
 import collections
+import itertools
 import nltk.classify.util
 from nltk.metrics import *
+from nltk.collocations import BigramCollocationFinder
 from nltk.classify import NaiveBayesClassifier
 from nltk.corpus import movie_reviews, stopwords
 
 stopset = set(stopwords.words('english'))
 
-def word_feats(words, filterset=None):
-    if filterset is None:
-        return dict([(word, True) for word in words])
-    else:
-        return dict([(word, True) for word in words if word not in filterset])
+###Feature Extraction methods
+#BigramCollocationFinder scores bigrams based on a BigramAssocMeasures(def=chi_sq) based on frequency of the bigram vs frequency of each word in the bigram
+def bigram_word_feats(words, score_fn=BigramAssocMeasures.chi_sq, n=200):
+    bigram_finder = BigramCollocationFinder.from_words(words)
+    #find the best n bigrams based on the score_fn
+    bigrams = bigram_finder.nbest(score_fn, n)
+    #itertools.chain(words, bigrams) will iterate through wordset first then bigrams. Therefore 'ngram'
+    return dict([(ngram, True) for ngram in itertools.chain(words, bigrams)])
 
-def evaulate_classifier(featx, filterset=None):
+def stopset_filtered_word_feats(words):
+    return dict([(word, True) for word in words if word not in stopset])
+
+def word_feats(words):
+    return dict([(word, True) for word in words])
+
+#Evaluate the NaiveBayesClassifier based on a Feature Extraction method.
+def evaulate_classifier(featx):
     negids = movie_reviews.fileids('neg')
     posids = movie_reviews.fileids('pos')
 
-    negfeats = [(featx(movie_reviews.words(fileids=[f]), filterset), 'neg') for f in negids]
-    posfeats = [(featx(movie_reviews.words(fileids=[f]), filterset), 'pos') for f in posids]
+    negfeats = [(featx(movie_reviews.words(fileids=[f])), 'neg') for f in negids]
+    posfeats = [(featx(movie_reviews.words(fileids=[f])), 'pos') for f in posids]
 
     negcutoff = len(negfeats)*3/4
     poscutoff = len(posfeats)*3/4
@@ -54,6 +66,7 @@ def evaulate_classifier(featx, filterset=None):
     #combination of precision and recall
     print 'NEG f_measure:', f_measure(refsets['neg'], testsets['neg'])
 
+    #these most informative features show the top 'ngrams' that will factor into whether a review is positive or negative. (based on pos:neg)
     classifier.show_most_informative_features()
 
-evaulate_classifier(word_feats, stopset)
+evaulate_classifier(bigram_word_feats)
