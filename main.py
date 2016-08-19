@@ -9,7 +9,8 @@ from nltk.corpus import movie_reviews, stopwords
 stopset = set(stopwords.words('english'))
 
 ###Feature Extraction methods
-#BigramCollocationFinder scores bigrams based on a BigramAssocMeasures(def=chi_sq) based on frequency of the bigram vs frequency of each word in the bigram
+
+#[Bigram Feature Extraction]: BigramCollocationFinder scores bigrams based on a BigramAssocMeasures(def=chi_sq) based on frequency of the bigram vs frequency of each word in the bigram
 def bigram_word_feats(words, score_fn=BigramAssocMeasures.chi_sq, n=200):
     bigram_finder = BigramCollocationFinder.from_words(words)
     #find the best n bigrams based on the score_fn
@@ -17,13 +18,15 @@ def bigram_word_feats(words, score_fn=BigramAssocMeasures.chi_sq, n=200):
     #itertools.chain(words, bigrams) will iterate through wordset first then bigrams. Therefore 'ngram'
     return dict([(ngram, True) for ngram in itertools.chain(words, bigrams)])
 
+#[Stopword Filtered Feature Extraction]: basic feature extraction based on words with stopwords filtered out
 def stopset_filtered_word_feats(words):
     return dict([(word, True) for word in words if word not in stopset])
 
+#[Basic Feature Extraction]: basic feature extraction on only words.
 def word_feats(words):
     return dict([(word, True) for word in words])
 
-#Evaluate the NaiveBayesClassifier based on a Feature Extraction method.
+###Evaluate the NaiveBayesClassifier based on a Feature Extraction method.
 def evaulate_classifier(featx):
     negids = movie_reviews.fileids('neg')
     posids = movie_reviews.fileids('pos')
